@@ -1,9 +1,10 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterModule } from '@angular/router';
 import { MsalService, MsalBroadcastService } from '@azure/msal-angular';
 import { EventMessage, EventType } from '@azure/msal-browser';
 import { filter } from 'rxjs/operators';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-root',
@@ -41,6 +42,8 @@ export class AppComponent implements OnInit {
   correoUsuario = '';
   cargando = true;
 
+  private destroyRef = inject(DestroyRef);
+
   constructor(
     private authService: MsalService,
     private msalBroadcastService: MsalBroadcastService,
@@ -48,28 +51,32 @@ export class AppComponent implements OnInit {
   ) {}
 
   async ngOnInit(): Promise<void> {
+    // 1. Escuchar eventos globales de MSAL con auto-desuscripción
+    this.msalBroadcastService.msalSubject$
+      .pipe(
+        filter((msg: EventMessage) =>
+          msg.eventType === EventType.LOGIN_SUCCESS ||
+          msg.eventType === EventType.ACQUIRE_TOKEN_SUCCESS ||
+          msg.eventType === EventType.HANDLE_REDIRECT_END
+        ),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(() => {
+        this.actualizarEstado();
+      });
+
+    // 2. Inicialización y manejo de promesas
     try {
       await this.authService.instance.initialize();
-
-      this.msalBroadcastService.msalSubject$
-        .pipe(
-          filter((msg: EventMessage) => msg.eventType === EventType.LOGIN_SUCCESS || msg.eventType === EventType.ACQUIRE_TOKEN_SUCCESS)
-        )
-        .subscribe((result: any) => {
-          if (result?.payload?.account) {
-            this.authService.instance.setActiveAccount(result.payload.account);
-            this.actualizarEstado();
-          }
-        });
-
       const response = await this.authService.instance.handleRedirectPromise();
+
       if (response?.account) {
         this.authService.instance.setActiveAccount(response.account);
       }
-      this.actualizarEstado();
     } catch (error) {
       console.error('Error al inicializar MSAL:', error);
     } finally {
+      this.actualizarEstado();
       this.cargando = false;
       this.cdr.detectChanges();
     }
@@ -77,8 +84,11 @@ export class AppComponent implements OnInit {
 
   private actualizarEstado(): void {
     let activeAccount = this.authService.instance.getActiveAccount();
-    if (!activeAccount && this.authService.instance.getAllAccounts().length > 0) {
-      activeAccount = this.authService.instance.getAllAccounts()[0];
+    const allAccounts = this.authService.instance.getAllAccounts();
+
+    // Si no hay cuenta activa establecida pero existen cuentas en almacenamiento local
+    if (!activeAccount && allAccounts.length > 0) {
+      activeAccount = allAccounts[0];
       this.authService.instance.setActiveAccount(activeAccount);
     }
 
