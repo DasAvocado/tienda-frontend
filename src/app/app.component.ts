@@ -10,14 +10,11 @@ import { filter } from 'rxjs/operators';
   standalone: true,
   imports: [CommonModule, RouterOutlet, RouterModule],
   template: `
-    <!-- Barra de Navegación -->
     <nav style="display: flex; justify-content: space-between; align-items: center; background-color: #ff4757; padding: 15px 30px; color: white;">
-      <!-- Logo / Botón Home -->
       <a routerLink="/" style="color: white; text-decoration: none; font-size: 24px; font-weight: 900; letter-spacing: 1px; cursor: pointer;">
         PAUPÉRRIMOS
       </a>
 
-      <!-- Enlaces y Autenticación -->
       <div style="display: flex; gap: 20px; align-items: center;">
         <a routerLink="/" style="color: white; text-decoration: none; font-weight: bold;">Inicio</a>
         <a routerLink="/carrito" style="background: white; color: #ff4757; padding: 8px 15px; border-radius: 20px; text-decoration: none; font-weight: bold;">🛒 Carrito</a>
@@ -33,7 +30,6 @@ import { filter } from 'rxjs/operators';
       </div>
     </nav>
 
-    <!-- Contenido Principal -->
     <div style="padding: 30px; font-family: Arial, sans-serif;">
       <div *ngIf="cargando">Cargando estado de autenticación...</div>
       <router-outlet *ngIf="!cargando"></router-outlet>
@@ -51,32 +47,32 @@ export class AppComponent implements OnInit {
     private cdr: ChangeDetectorRef
   ) {}
 
-  ngOnInit(): void {
-    // Escuchar el evento cuando el login por redirección finaliza con éxito
-    this.msalBroadcastService.msalSubject$
-      .pipe(
-        filter((msg: EventMessage) => msg.eventType === EventType.LOGIN_SUCCESS || msg.eventType === EventType.ACQUIRE_TOKEN_SUCCESS)
-      )
-      .subscribe((result: any) => {
-        if (result?.payload?.account) {
-          this.authService.instance.setActiveAccount(result.payload.account);
-          this.actualizarEstado();
-        }
-      });
+  async ngOnInit(): Promise<void> {
+    try {
+      await this.authService.instance.initialize();
 
-    // Procesar redirección e inicializar cuenta activa
-    this.authService.instance.handleRedirectPromise()
-      .then((response) => {
-        if (response?.account) {
-          this.authService.instance.setActiveAccount(response.account);
-        }
-        this.actualizarEstado();
-      })
-      .catch((error) => console.error('Error al procesar login:', error))
-      .finally(() => {
-        this.cargando = false;
-        this.cdr.detectChanges();
-      });
+      this.msalBroadcastService.msalSubject$
+        .pipe(
+          filter((msg: EventMessage) => msg.eventType === EventType.LOGIN_SUCCESS || msg.eventType === EventType.ACQUIRE_TOKEN_SUCCESS)
+        )
+        .subscribe((result: any) => {
+          if (result?.payload?.account) {
+            this.authService.instance.setActiveAccount(result.payload.account);
+            this.actualizarEstado();
+          }
+        });
+
+      const response = await this.authService.instance.handleRedirectPromise();
+      if (response?.account) {
+        this.authService.instance.setActiveAccount(response.account);
+      }
+      this.actualizarEstado();
+    } catch (error) {
+      console.error('Error al inicializar MSAL:', error);
+    } finally {
+      this.cargando = false;
+      this.cdr.detectChanges();
+    }
   }
 
   private actualizarEstado(): void {
