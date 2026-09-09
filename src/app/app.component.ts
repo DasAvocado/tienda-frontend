@@ -1,7 +1,9 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterModule } from '@angular/router';
-import { MsalService } from '@azure/msal-angular';
+import { MsalService, MsalBroadcastService } from '@azure/msal-angular';
+import { EventMessage, EventType } from '@azure/msal-browser';
+import { filter } from 'rxjs/operators';
 
 @Component({
   selector: 'app-root',
@@ -31,7 +33,7 @@ import { MsalService } from '@azure/msal-angular';
       </div>
     </nav>
 
-    <!-- Aquí se inyectarán las páginas (Home, Carrito, Pago) dinámicamente -->
+    <!-- Contenido Principal -->
     <div style="padding: 30px; font-family: Arial, sans-serif;">
       <div *ngIf="cargando">Cargando estado de autenticación...</div>
       <router-outlet *ngIf="!cargando"></router-outlet>
@@ -43,32 +45,57 @@ export class AppComponent implements OnInit {
   correoUsuario = '';
   cargando = true;
 
-  constructor(private authService: MsalService, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private authService: MsalService,
+    private msalBroadcastService: MsalBroadcastService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
-  async ngOnInit(): Promise<void> {
-    try {
-      await this.authService.instance.initialize();
-      const response = await this.authService.instance.handleRedirectPromise();
-      if (response) this.authService.instance.setActiveAccount(response.account);
-      this.checkAndSetActiveAccount();
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      this.cargando = false;
-      this.cdr.detectChanges();
-    }
+  ngOnInit(): void {
+    // Escuchar el evento cuando el login por redirección finaliza con éxito
+    this.msalBroadcastService.msalSubject$
+      .pipe(
+        filter((msg: EventMessage) => msg.eventType === EventType.LOGIN_SUCCESS || msg.eventType === EventType.ACQUIRE_TOKEN_SUCCESS)
+      )
+      .subscribe((result: any) => {
+        if (result?.payload?.account) {
+          this.authService.instance.setActiveAccount(result.payload.account);
+          this.actualizarEstado();
+        }
+      });
+
+    // Procesar redirección e inicializar cuenta activa
+    this.authService.instance.handleRedirectPromise()
+      .then((response) => {
+        if (response?.account) {
+          this.authService.instance.setActiveAccount(response.account);
+        }
+        this.actualizarEstado();
+      })
+      .catch((error) => console.error('Error al procesar login:', error))
+      .finally(() => {
+        this.cargando = false;
+        this.cdr.detectChanges();
+      });
   }
 
-  checkAndSetActiveAccount(): void {
+  private actualizarEstado(): void {
     let activeAccount = this.authService.instance.getActiveAccount();
     if (!activeAccount && this.authService.instance.getAllAccounts().length > 0) {
       activeAccount = this.authService.instance.getAllAccounts()[0];
       this.authService.instance.setActiveAccount(activeAccount);
     }
+
     this.usuarioAutenticado = !!activeAccount;
     this.correoUsuario = activeAccount ? activeAccount.username : '';
+    this.cdr.detectChanges();
   }
 
-  login(): void { this.authService.loginRedirect(); }
-  logout(): void { this.authService.logoutRedirect(); }
+  login(): void {
+    this.authService.loginRedirect();
+  }
+
+  logout(): void {
+    this.authService.logoutRedirect();
+  }
 }
