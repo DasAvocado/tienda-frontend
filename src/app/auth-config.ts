@@ -1,5 +1,5 @@
 import { Configuration, BrowserCacheLocation } from '@azure/msal-browser';
-//cambiar redirectUri por la ip del url cada vez que se inicia
+
 export const msalConfig: Configuration = {
   auth: {
     clientId: '39a9591b-35f1-4165-8cf2-667a2c643920',
@@ -13,7 +13,7 @@ export const msalConfig: Configuration = {
 
 export const protectedResources = {
   apiGateway: {
-    endpoint: 'http://localhost:8081/',
+    endpoint: 'https://7ot0ksyhdg.execute-api.us-east-1.amazonaws.com/',
     scopes: ['api://39a9591b-35f1-4165-8cf2-667a2c643920/Pedidos.Access']
   }
 };
