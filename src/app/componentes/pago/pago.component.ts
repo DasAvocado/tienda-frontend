@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { CarritoService } from '../../servicios/carrito.service';
-import { mensajeError } from '../../servicios/api.service';
+import { ApiService, mensajeError } from '../../servicios/api.service';
 import { clp, imagenProducto } from '../../util/formato';
 
 @Component({
@@ -14,7 +14,8 @@ import { clp, imagenProducto } from '../../util/formato';
     <div class="success" *ngIf="pagoExitoso">
       <div class="check" aria-hidden="true">✓</div>
       <h2>¡Compra recibida!</h2>
-      <p>Tu orden se está procesando: descontamos el stock y te enviaremos la confirmación por correo.</p>
+      <p>Tu orden se está procesando y descontamos el stock.</p>
+      <p *ngIf="aviso" class="sub">{{ aviso }}</p>
       <a routerLink="/ordenes" class="btn btn-primary btn-lg">Ver mis órdenes</a>
       <a routerLink="/" class="btn btn-outline btn-lg">Volver al catálogo</a>
     </div>
@@ -93,11 +94,13 @@ export class PagoComponent implements OnInit {
   pagoExitoso = false;
   procesando = false;
   error = '';
+  /** Aviso sobre el correo de confirmación (según la opción Notificaciones). */
+  aviso = '';
 
   clp = clp;
   imagen = imagenProducto;
 
-  constructor(public carritoService: CarritoService) {}
+  constructor(public carritoService: CarritoService, private api: ApiService) {}
 
   ngOnInit(): void {
     this.carritoService.cargar();
@@ -151,8 +154,18 @@ export class PagoComponent implements OnInit {
     this.procesando = true;
     this.error = '';
     this.carritoService.checkout().subscribe({
-      next: () => { this.pagoExitoso = true; this.procesando = false; },
+      next: () => { this.pagoExitoso = true; this.procesando = false; this.avisarCorreo(); },
       error: e => { this.error = mensajeError(e); this.procesando = false; }
+    });
+  }
+
+  /** ms-notificaciones envía el correo de forma asíncrona (RabbitMQ); aquí solo informamos a dónde llegará. */
+  private avisarCorreo(): void {
+    this.api.getPreferencias().subscribe({
+      next: p => this.aviso = p.correoCompra
+        ? `Te enviaremos la confirmación a ${p.destino}.`
+        : 'Tienes desactivado el correo de compra (puedes activarlo en Notificaciones).',
+      error: () => this.aviso = ''
     });
   }
 }

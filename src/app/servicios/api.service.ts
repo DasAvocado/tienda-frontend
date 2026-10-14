@@ -33,6 +33,21 @@ export interface Orden {
   items: { productoId: number; nombre: string; precio: number; cantidad: number }[];
 }
 
+/** Preferencias de la opción "Notificaciones" (ms-notificaciones). */
+export interface PreferenciaNotificacion {
+  email: string;        // correo con el que se inició sesión
+  destino: string;      // casilla a la que realmente se envía
+  correoCompra: boolean;
+  modoEnvio: 'SMTP' | 'SIMULADO';
+}
+
+export interface NotificacionResponse {
+  estado: string;       // ENVIADO | SIMULADO | ERROR
+  destinatario: string;
+  asunto: string;
+  detalle: string;
+}
+
 /** Traduce un error HTTP a un mensaje legible para el usuario. */
 export function mensajeError(e: unknown): string {
   const err = e as HttpErrorResponse;
@@ -46,7 +61,7 @@ export function mensajeError(e: unknown): string {
   }
   if (err?.status === 401) return 'Sesión no válida o token rechazado (401). Vuelve a iniciar sesión.';
   if (err?.status === 403) return 'No tienes permisos para esta acción (403): falta el rol o el scope.';
-  if (err?.status === 400 && err.error?.message) return err.error.message;
+  if (err?.status === 400 && (err.error?.mensaje || err.error?.message)) return err.error.mensaje ?? err.error.message;
   return `Error ${err?.status ?? ''} al llamar al servidor.`;
 }
 
@@ -88,5 +103,16 @@ export class ApiService {
   // ms-ordenes
   getMisOrdenes(): Observable<Orden[]> {
     return this.http.get<Orden[]>(`${this.base}/api/ordenes`);
+  }
+
+  // ms-notificaciones (el correo se toma del token en el backend, nunca se envía desde aquí)
+  getPreferencias(): Observable<PreferenciaNotificacion> {
+    return this.http.get<PreferenciaNotificacion>(`${this.base}/api/notificaciones/preferencias`);
+  }
+  guardarPreferencias(correoCompra: boolean): Observable<PreferenciaNotificacion> {
+    return this.http.put<PreferenciaNotificacion>(`${this.base}/api/notificaciones/preferencias`, { correoCompra });
+  }
+  enviarCorreoPrueba(): Observable<NotificacionResponse> {
+    return this.http.post<NotificacionResponse>(`${this.base}/api/notificaciones/preferencias/prueba`, {});
   }
 }

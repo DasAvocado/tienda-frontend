@@ -1,0 +1,9 @@
+services:
+  frontend:
+    build: .
+    image: pedidos360/frontend
+    container_name: frontend-pedidos
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"

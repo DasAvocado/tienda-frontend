@@ -22,6 +22,7 @@ import { CarritoService } from './servicios/carrito.service';
         <nav class="nav" aria-label="Principal">
           <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Inicio</a>
           <a routerLink="/ordenes" routerLinkActive="active">Mis órdenes</a>
+          <a routerLink="/notificaciones" routerLinkActive="active">Notificaciones</a>
           <a routerLink="/carrito" routerLinkActive="active" class="cart-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="9" cy="20" r="1.5"></circle><circle cx="18" cy="20" r="1.5"></circle>
