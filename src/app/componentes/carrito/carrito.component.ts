@@ -1,45 +1,68 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { CarritoService } from '../../servicios/carrito.service';
+import { clp, imagenProducto } from '../../util/formato';
 
 @Component({
   selector: 'app-carrito',
   standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
-    <div style="padding: 20px; max-width: 800px; margin: 0 auto;">
-      <h2>🛒 Tu Carrito</h2>
+    <div class="page-head">
+      <h1>Tu carrito</h1>
+      <span class="sub" *ngIf="carritoService.items.length > 0">{{ unidades }} {{ unidades === 1 ? 'artículo' : 'artículos' }}</span>
+    </div>
 
-      <ul style="list-style-type: none; padding: 0;">
-        <li *ngIf="carritoService.items.length === 0" style="color: #666; padding: 20px; text-align: center; background: #f9f9f9; border-radius: 8px;">
-          El carrito está vacío. ¡Ve al catálogo y añade algo!
-        </li>
+    <p *ngIf="carritoService.error" class="alert" role="alert">{{ carritoService.error }}</p>
 
-        <li *ngFor="let item of carritoService.items" style="padding: 15px 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
-          <span style="flex: 1;"><strong>{{ item.nombre }}</strong> (\${{ item.precio }})</span>
+    <div class="empty" *ngIf="carritoService.items.length === 0">
+      <img src="img/repuesto.svg" alt="">
+      <h3>Tu carrito está vacío</h3>
+      <p>Agrega filtros, frenos o baterías desde el catálogo.</p>
+      <a routerLink="/" class="btn btn-primary btn-lg">Ir al catálogo</a>
+    </div>
 
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <button (click)="carritoService.restar(item)" style="padding: 5px 10px; cursor: pointer;">-</button>
-            <span>{{ item.cantidad }}</span>
-            <button (click)="carritoService.sumar(item)" style="padding: 5px 10px; cursor: pointer;">+</button>
-            <button (click)="carritoService.eliminar(item)" style="background-color: #d13438; color: white; padding: 5px 10px; border: none; cursor: pointer; margin-left: 15px;">Eliminar</button>
+    <div class="cart-layout" *ngIf="carritoService.items.length > 0">
+      <div class="cart-list">
+        <article class="cart-item" *ngFor="let item of carritoService.items">
+          <img class="thumb" [src]="imagen(item.nombre)" alt="">
+          <div class="ci-info">
+            <h3>{{ item.nombre }}</h3>
+            <span class="unit">{{ clp(item.precio) }} c/u</span>
           </div>
-
-          <strong style="min-width: 100px; text-align: right;">\${{ item.precio * item.cantidad }}</strong>
-        </li>
-      </ul>
-
-      <div *ngIf="carritoService.items.length > 0" style="text-align: right; margin-top: 20px; padding-top: 20px; border-top: 2px solid #ddd;">
-        <button (click)="carritoService.vaciar()" style="background-color: #6c757d; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-right: 15px;">Vaciar Carrito</button>
-        <h3 style="display: inline-block; margin-right: 20px;">Total: \${{ carritoService.obtenerTotal() }}</h3>
-        <a routerLink="/pago" style="background-color: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">
-          Proceder al Pago
-        </a>
+          <div class="qty">
+            <button (click)="carritoService.restar(item)" aria-label="Quitar una unidad">−</button>
+            <span>{{ item.cantidad }}</span>
+            <button (click)="carritoService.sumar(item)" aria-label="Agregar una unidad">+</button>
+          </div>
+          <strong class="ci-total">{{ clp(item.precio * item.cantidad) }}</strong>
+          <button class="icon-btn" (click)="carritoService.eliminar(item)" aria-label="Eliminar del carrito">✕</button>
+        </article>
       </div>
+
+      <aside class="summary">
+        <h3>Resumen</h3>
+        <div class="summary-row"><span>Subtotal</span><span>{{ clp(carritoService.obtenerTotal()) }}</span></div>
+        <div class="summary-row"><span>Despacho</span><span>Por definir</span></div>
+        <div class="summary-row total"><span>Total</span><strong>{{ clp(carritoService.obtenerTotal()) }}</strong></div>
+        <a routerLink="/pago" class="btn btn-primary btn-lg btn-block">Proceder al pago</a>
+        <button class="btn btn-outline btn-block" (click)="carritoService.vaciar()">Vaciar carrito</button>
+      </aside>
     </div>
   `
 })
-export class CarritoComponent {
+export class CarritoComponent implements OnInit {
+  clp = clp;
+  imagen = imagenProducto;
+
   constructor(public carritoService: CarritoService) {}
+
+  get unidades(): number {
+    return this.carritoService.items.reduce((t, i) => t + i.cantidad, 0);
+  }
+
+  ngOnInit(): void {
+    this.carritoService.cargar();
+  }
 }

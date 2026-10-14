@@ -1,0 +1,7 @@
+{
+  "/api/catalogo":       { "target": "http://127.0.0.1:8081", "secure": false },
+  "/api/carrito":        { "target": "http://127.0.0.1:8082", "secure": false },
+  "/api/ordenes":        { "target": "http://127.0.0.1:8083", "secure": false },
+  "/api/notificaciones": { "target": "http://127.0.0.1:8084", "secure": false },
+  "/api/auditoria":      { "target": "http://127.0.0.1:8085", "secure": false }
+}

@@ -1,17 +1,32 @@
-Aplicación web desarrollada en Angular que actúa como la interfaz de usuario del sistema Paupérrimos. Se integra con Microsoft Azure AD (Entra ID) para la gestión centralizada de identidades mediante el flujo OAuth 2.0 / OIDC con PKCE y consume microservicios protegidos a través de AWS API Gateway.   
-Tecnologías UtilizadasFramework: Angular  
-Autenticación: MSAL Angular (@azure/msal-angular, @azure/msal-browser)  
-Servidor / Contenedor: Nginx en Docker  
-Integración Cloud: AWS API Gateway / Azure AD IDaaS  
+# frontend-pedidos
 
-Requisitos Previos
-Node.js: v18.x o superior
-npm: v9.x o superior
-Angular CLI: v17.x o v18.x
+Angular 21 + MSAL (login corporativo Microsoft Entra ID con Authorization Code + PKCE).
+Llama a los microservicios **solo** a través del API Gateway (en local, a través del proxy de desarrollo).
 
-Instalación y Configuración
-Clonar el repositorio:
+## Ejecutar en local
+Requisitos: Node 22 (≥ 20.19) y los microservicios corriendo en local (puertos 8081–8085).
 
-Bash
-git clone https://github.com/DasAvocado/tienda-frontend
-cd frontend-pedidos 
+```bash
+npm ci
+npm start            # http://localhost:4200  (usa proxy.conf.json → localhost:8081..8085)
+```
+En Azure debe estar registrada la redirect URI **`http://localhost:4200/`** (Aplicación de página única).
+
+## Configuración
+`src/app/auth-config.ts`: tenant, client id, scope (`api://<client-id>/Menu-compra`) y `API_GATEWAY_URL` (Invoke URL del API HTTP `menu-compra`, usada cuando el sitio NO corre en localhost).
+
+## Desplegar en su instancia EC2
+```bash
+npm ci && npx ng build          # genera dist/frontend-pedidos/browser
+# copiar el contenido de dist/frontend-pedidos/browser a la raiz de nginx (p. ej. /usr/share/nginx/html)
+```
+nginx debe devolver `index.html` para rutas como `/carrito` o `/ordenes`:
+```nginx
+location / { try_files $uri $uri/ /index.html; }
+```
+MSAL exige HTTPS (salvo localhost). Registrar en Azure `https://<IP-ELASTICA>/` y ponerla en el CORS del API Gateway.
+
+## Diseño e imágenes
+- Tipografía: **Barlow Condensed** (títulos) + **Barlow** (texto), cargadas desde Google Fonts en `src/index.html` (necesita internet en el navegador; si no, usa fuentes del sistema).
+- Estilos globales y colores: `src/styles.css` (variables en `:root`).
+- Imágenes: ilustraciones SVG originales en `public/img/` (filtro, frenos, batería, repuesto, logo, engranaje). Para usar fotos reales de stock (p. ej. Unsplash/Pexels), guárdalas en `public/img/` y cambia los nombres en `src/app/util/formato.ts` (`imagenProducto`).
