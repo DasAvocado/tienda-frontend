@@ -11,7 +11,9 @@ RUN mkdir -p /certs && openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
       -subj "/CN=pedidos360" -keyout /certs/key.pem -out /certs/cert.pem
 
 FROM nginx:1.27-alpine
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# La plantilla se procesa al iniciar el contenedor -> /etc/nginx/conf.d/default.conf
+COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
+ENV RECOMENDACIONES_HOST=127.0.0.1
 COPY --from=build /certs /etc/nginx/certs
 COPY --from=build /app/dist/frontend-pedidos/browser /usr/share/nginx/html
 EXPOSE 80 443

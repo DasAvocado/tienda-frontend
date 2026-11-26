@@ -23,6 +23,7 @@ import { CarritoService } from './servicios/carrito.service';
           <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Inicio</a>
           <a routerLink="/ordenes" routerLinkActive="active">Mis órdenes</a>
           <a routerLink="/notificaciones" routerLinkActive="active">Notificaciones</a>
+          <a routerLink="/dashboard" routerLinkActive="active" *ngIf="esAdmin">Dashboard</a>
           <a routerLink="/carrito" routerLinkActive="active" class="cart-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="9" cy="20" r="1.5"></circle><circle cx="18" cy="20" r="1.5"></circle>
@@ -57,6 +58,7 @@ import { CarritoService } from './servicios/carrito.service';
 })
 export class AppComponent implements OnInit {
   usuarioAutenticado = false;
+  esAdmin = false;
   correoUsuario = '';
   cargando = true;
   private carritoCargado = false;
@@ -125,6 +127,9 @@ export class AppComponent implements OnInit {
 
     this.usuarioAutenticado = !!activeAccount;
     this.correoUsuario = activeAccount ? activeAccount.username : '';
+    // Rol de aplicacion "Admin" (viene en el id token cuando esta asignado al usuario en Entra ID)
+    const roles = (activeAccount?.idTokenClaims?.['roles'] as string[] | undefined) ?? [];
+    this.esAdmin = roles.some(r => r.toUpperCase() === 'ADMIN');
 
     // Carga el carrito una sola vez al detectar la sesión (alimenta el contador de la barra)
     if (this.usuarioAutenticado && !this.carritoCargado) {

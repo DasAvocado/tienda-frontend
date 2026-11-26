@@ -1,0 +1,41 @@
+# Plantilla: la imagen oficial de nginx reemplaza ${RECOMENDACIONES_HOST} al arrancar (envsubst)
+# y deja intactas las variables propias de nginx ($host, $uri...).
+
+# HTTP -> HTTPS
+server {
+    listen 80;
+    server_name _;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name _;
+
+    ssl_certificate     /etc/nginx/certs/cert.pem;
+    ssl_certificate_key /etc/nginx/certs/key.pem;
+
+    root  /usr/share/nginx/html;
+    index index.html;
+
+    # Dashboard en tiempo real: WebSocket hacia ms-recomendaciones (el API Gateway HTTP no soporta WebSocket).
+    # RECOMENDACIONES_HOST = IP PRIVADA de la instancia de ms-recomendaciones (ver .env).
+    location /ws/ {
+        proxy_pass http://${RECOMENDACIONES_HOST}:8088;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_read_timeout 3600s;
+    }
+
+    # Rutas de Angular (/carrito, /pago, /producto/1, /dashboard...) -> index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # index.html sin cache (para que tome siempre la ultima version desplegada)
+    location = /index.html {
+        add_header Cache-Control "no-store";
+    }
+}

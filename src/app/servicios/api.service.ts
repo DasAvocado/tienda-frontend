@@ -9,6 +9,7 @@ export interface Producto {
   descripcion?: string;
   precio: number;
   stock: number;
+  categoria?: string;
 }
 
 export interface ItemCarrito {
@@ -31,6 +32,70 @@ export interface Orden {
   total: number;
   fecha: string;
   items: { productoId: number; nombre: string; precio: number; cantidad: number }[];
+  pagoId?: number;
+  metodoPago?: string;
+  subtotal?: number;
+  descuento?: number;
+  costoEnvio?: number;
+  cupon?: string;
+  tipoEnvio?: string;
+}
+
+/** Totales calculados por ms-carrito (el monto a pagar sale de aquí). */
+export interface ResumenCarrito {
+  items: ItemCarrito[];
+  subtotal: number;
+  descuento: number;
+  costoEnvio: number;
+  total: number;
+  cupon: string | null;
+  descripcionCupon: string | null;
+  tipoEnvio: 'RETIRO' | 'ESTANDAR' | 'EXPRESS';
+}
+
+/** ms-pagos */
+export interface Pago {
+  id: number;
+  estado: 'PENDIENTE' | 'APROBADO' | 'RECHAZADO' | 'BLOQUEADO_FRAUDE' | 'ANULADO';
+  metodo: 'TARJETA_SIMULADA' | 'WEBPAY';
+  monto: number;
+  tarjeta: string | null;
+  codigoAutorizacion: string | null;
+  detalle: string | null;
+  creado: string;
+}
+
+export interface WebpayInicio {
+  pagoId: number;
+  token: string;
+  url: string;
+}
+
+/** ms-recomendaciones */
+export interface ProductoRecomendado {
+  productoId: number;
+  nombre: string;
+  categoria: string | null;
+  precio: number | null;
+  puntaje: number;
+  motivo: string;
+}
+
+export interface Metricas {
+  generado: string;
+  clicksUltimoMinuto: number;
+  clicksPorMinuto: { minuto: string; clicks: number }[];
+  topProductos: { productoId: number; nombre: string; vistas: number }[];
+  eventosPorTipo: Record<string, number>;
+  pagos: { aprobados: number; rechazados: number; bloqueados: number; anulados: number; montoAprobado: number };
+  alertasFraude: number;
+  ultimasAlertas: { fecha: string; usuarioId: string; tarjeta: string; intentos: number; monto: number }[];
+  ordenesCreadas: number;
+  ventasTotales: number;
+  correosEnviados: number;
+  usuariosActivos: number;
+  totalEventos: number;
+  almacenamiento: string;
 }
 
 /** Preferencias de la opción "Notificaciones" (ms-notificaciones). */
@@ -61,7 +126,9 @@ export function mensajeError(e: unknown): string {
   }
   if (err?.status === 401) return 'Sesión no válida o token rechazado (401). Vuelve a iniciar sesión.';
   if (err?.status === 403) return 'No tienes permisos para esta acción (403): falta el rol o el scope.';
-  if (err?.status === 400 && (err.error?.mensaje || err.error?.message)) return err.error.mensaje ?? err.error.message;
+  if ([400, 402, 409, 423].includes(err?.status) && (err.error?.mensaje || err.error?.message || err.error?.detalle)) {
+    return err.error.mensaje ?? err.error.detalle ?? err.error.message;
+  }
   return `Error ${err?.status ?? ''} al llamar al servidor.`;
 }
 
@@ -98,6 +165,42 @@ export class ApiService {
   }
   checkout(): Observable<CheckoutResponse> {
     return this.http.post<CheckoutResponse>(`${this.base}/api/carrito/checkout`, {});
+  }
+  getResumen(): Observable<ResumenCarrito> {
+    return this.http.get<ResumenCarrito>(`${this.base}/api/carrito/resumen`);
+  }
+  aplicarCupon(codigo: string): Observable<ResumenCarrito> {
+    return this.http.post<ResumenCarrito>(`${this.base}/api/carrito/cupon`, { codigo });
+  }
+  quitarCupon(): Observable<ResumenCarrito> {
+    return this.http.delete<ResumenCarrito>(`${this.base}/api/carrito/cupon`);
+  }
+  elegirEnvio(tipo: string): Observable<ResumenCarrito> {
+    return this.http.put<ResumenCarrito>(`${this.base}/api/carrito/envio`, { tipo });
+  }
+
+  // ms-catalogo: detalle (publica PRODUCTO_VISTO en Kafka)
+  getProducto(id: number): Observable<Producto> {
+    return this.http.get<Producto>(`${this.base}/api/catalogo/${id}`);
+  }
+
+  // ms-pagos
+  pagarConTarjeta(datos: { numero: string; vencimiento: string; cvv: string; titular: string; monto: number }): Observable<Pago> {
+    return this.http.post<Pago>(`${this.base}/api/pagos/tarjeta`, datos);
+  }
+  iniciarWebpay(monto: number): Observable<WebpayInicio> {
+    return this.http.post<WebpayInicio>(`${this.base}/api/pagos/webpay/iniciar`, { monto, returnOrigin: window.location.origin });
+  }
+  getPago(id: number): Observable<Pago> {
+    return this.http.get<Pago>(`${this.base}/api/pagos/${id}`);
+  }
+
+  // ms-recomendaciones
+  getRecomendaciones(): Observable<{ usuarioId: string; productos: ProductoRecomendado[]; fecha: string }> {
+    return this.http.get<{ usuarioId: string; productos: ProductoRecomendado[]; fecha: string }>(`${this.base}/api/recomendaciones`);
+  }
+  getMetricas(): Observable<Metricas> {
+    return this.http.get<Metricas>(`${this.base}/api/recomendaciones/metricas`);
   }
 
   // ms-ordenes

@@ -7,3 +7,4 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    env_file: .env      # RECOMENDACIONES_HOST (copia .env.example a .env)

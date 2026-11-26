@@ -1,38 +1,31 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
-import { ApiService, CheckoutResponse, ItemCarrito, mensajeError } from './api.service';
+import { ApiService, ItemCarrito, ResumenCarrito, mensajeError } from './api.service';
 
 /**
  * El carrito vive en ms-carrito (privado por usuario). Este servicio mantiene una copia local
- * (`items`) para que las vistas la lean directamente, y sincroniza cada cambio con el backend.
+ * (`items` y `resumen`) para que las vistas la lean directamente, y sincroniza cada cambio con el backend.
+ * Los totales (descuento del cupón, envío) los calcula SIEMPRE el backend.
  */
 @Injectable({
   providedIn: 'root'
 })
 export class CarritoService {
   items: ItemCarrito[] = [];
+  resumen: ResumenCarrito | null = null;
   error = '';
 
   constructor(private api: ApiService) {}
 
   cargar(): void {
-    this.api.getCarrito().subscribe({
-      next: items => { this.items = items; this.error = ''; },
+    this.api.getResumen().subscribe({
+      next: r => this.aplicar(r),
       error: e => this.error = mensajeError(e)
     });
   }
 
   agregar(producto: { id: number; nombre: string; precio: number }): void {
-    this.api.agregarItem({
-      productoId: producto.id,
-      nombre: producto.nombre,
-      precio: producto.precio,
-      cantidad: 1
-    }).subscribe({
-      next: () => this.cargar(),
-      error: e => this.error = mensajeError(e)
-    });
+    this.api.agregarItem({ productoId: producto.id, nombre: producto.nombre, precio: producto.precio, cantidad: 1 })
+      .subscribe({ next: () => this.cargar(), error: e => this.error = mensajeError(e) });
   }
 
   sumar(item: ItemCarrito): void { this.cambiarCantidad(item, item.cantidad + 1); }
@@ -46,32 +39,45 @@ export class CarritoService {
   }
 
   eliminar(item: ItemCarrito): void {
-    this.api.eliminarItem(item.id).subscribe({
-      next: () => this.items = this.items.filter(p => p.id !== item.id),
-      error: e => this.error = mensajeError(e)
-    });
+    this.api.eliminarItem(item.id).subscribe({ next: () => this.cargar(), error: e => this.error = mensajeError(e) });
   }
 
   vaciar(): void {
-    this.api.vaciarCarrito().subscribe({
-      next: () => this.items = [],
-      error: e => this.error = mensajeError(e)
+    this.api.vaciarCarrito().subscribe({ next: () => this.cargar(), error: e => this.error = mensajeError(e) });
+  }
+
+  aplicarCupon(codigo: string, alTerminar: (error: string) => void): void {
+    this.api.aplicarCupon(codigo).subscribe({
+      next: r => { this.aplicar(r); alTerminar(''); },
+      error: e => alTerminar(mensajeError(e))
     });
   }
 
-  /** Confirma la compra: ms-carrito publica el evento en RabbitMQ y vacia el carrito. */
-  checkout(): Observable<CheckoutResponse> {
-    return this.api.checkout().pipe(tap(() => this.items = []));
+  quitarCupon(): void {
+    this.api.quitarCupon().subscribe({ next: r => this.aplicar(r), error: e => this.error = mensajeError(e) });
+  }
+
+  elegirEnvio(tipo: string): void {
+    this.api.elegirEnvio(tipo).subscribe({ next: r => this.aplicar(r), error: e => this.error = mensajeError(e) });
+  }
+
+  /** Tras un pago aprobado, ms-carrito vacía el carrito de forma asíncrona (RabbitMQ). */
+  limpiarLocal(): void {
+    this.items = [];
+    this.resumen = null;
   }
 
   obtenerTotal(): number {
-    return this.items.reduce((total, item) => total + (item.precio * item.cantidad), 0);
+    return this.resumen?.total ?? this.items.reduce((t, i) => t + i.precio * i.cantidad, 0);
+  }
+
+  private aplicar(r: ResumenCarrito): void {
+    this.resumen = r;
+    this.items = r.items;
+    this.error = '';
   }
 
   private cambiarCantidad(item: ItemCarrito, cantidad: number): void {
-    this.api.cambiarCantidad(item.id, cantidad).subscribe({
-      next: actualizado => item.cantidad = actualizado.cantidad,
-      error: e => this.error = mensajeError(e)
-    });
+    this.api.cambiarCantidad(item.id, cantidad).subscribe({ next: () => this.cargar(), error: e => this.error = mensajeError(e) });
   }
 }

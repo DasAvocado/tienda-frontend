@@ -31,7 +31,7 @@ import { clp, imagenProducto } from '../../util/formato';
             <h3>Orden #{{ o.id }}</h3>
             <span class="order-date">{{ o.fecha | date: 'dd/MM/yyyy HH:mm' }}</span>
           </div>
-          <span class="status">{{ o.estado === 'CREADA' ? 'Confirmada' : o.estado }}</span>
+          <span class="status">{{ o.estado === 'CREADA' ? 'Confirmada' : o.estado === 'PAGADA' ? 'Pagada' : o.estado }}</span>
         </div>
         <div class="order-items">
           <div class="mini-item" *ngFor="let i of o.items">
@@ -39,6 +39,11 @@ import { clp, imagenProducto } from '../../util/formato';
             <span class="n">{{ i.nombre }} <span class="unit">× {{ i.cantidad }}</span></span>
             <strong>{{ clp(i.precio * i.cantidad) }}</strong>
           </div>
+        </div>
+        <div class="order-extra" *ngIf="o.pagoId">
+          <span>Pago #{{ o.pagoId }} · {{ o.metodoPago === 'WEBPAY' ? 'Webpay Plus' : 'Tarjeta' }}</span>
+          <span *ngIf="o.tipoEnvio">Despacho {{ o.tipoEnvio | lowercase }}: {{ (o.costoEnvio ?? 0) === 0 ? 'gratis' : clp(o.costoEnvio ?? 0) }}</span>
+          <span *ngIf="(o.descuento ?? 0) > 0">Cupón {{ o.cupon }}: −{{ clp(o.descuento ?? 0) }}</span>
         </div>
         <div class="order-total">Total<strong>{{ clp(o.total) }}</strong></div>
       </article>

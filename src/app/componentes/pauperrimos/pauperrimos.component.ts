@@ -1,5 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
+import { RecomendacionesComponent } from '../recomendaciones/recomendaciones.component';
 import { CarritoService } from '../../servicios/carrito.service';
 import { ApiService, Producto, mensajeError } from '../../servicios/api.service';
 import { MsalService } from '@azure/msal-angular';
@@ -8,13 +10,13 @@ import { clp, imagenProducto } from '../../util/formato';
 @Component({
   selector: 'app-pauperrimos',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterModule, RecomendacionesComponent],
   template: `
     <section class="hero">
       <div class="hero-copy">
         <span class="eyebrow">Repuestos automotrices</span>
         <h1>Tu auto en marcha,<br><em>sin gastar de más</em></h1>
-        <p>Filtros, frenos y baterías al precio justo. Compra con tu cuenta Microsoft y sigue el estado de tus órdenes.</p>
+        <p>Motor, frenos y eléctrico al precio justo. Paga con Webpay, usa tus cupones y recibe recomendaciones según lo que miras.</p>
         <button *ngIf="estaAutenticado" class="btn btn-primary btn-lg" (click)="irAlCatalogo()">Ver catálogo</button>
         <button *ngIf="!estaAutenticado" class="btn btn-primary btn-lg" (click)="iniciarSesion()">Iniciar sesión para comprar</button>
       </div>
@@ -41,6 +43,8 @@ import { clp, imagenProducto } from '../../util/formato';
       </div>
     </section>
 
+    <app-recomendaciones *ngIf="estaAutenticado"></app-recomendaciones>
+
     <section id="catalogo">
       <div class="section-head">
         <h2>Catálogo</h2>
@@ -62,12 +66,13 @@ import { clp, imagenProducto } from '../../util/formato';
 
       <div class="grid" *ngIf="estaAutenticado && !cargando">
         <article class="product" *ngFor="let producto of catalogo">
-          <div class="product-media">
+          <a class="product-media" [routerLink]="['/producto', producto.id]" [attr.aria-label]="'Ver ' + producto.nombre">
             <img [src]="imagen(producto.nombre)" [alt]="producto.nombre" loading="lazy">
             <span class="chip" [ngClass]="claseStock(producto)">{{ textoStock(producto) }}</span>
-          </div>
+          </a>
           <div class="product-body">
-            <h3>{{ producto.nombre }}</h3>
+            <span class="rec-cat" *ngIf="producto.categoria">{{ producto.categoria }}</span>
+            <h3><a [routerLink]="['/producto', producto.id]">{{ producto.nombre }}</a></h3>
             <p class="desc">{{ producto.descripcion }}</p>
             <div class="product-foot">
               <span class="price">{{ clp(producto.precio) }}</span>
