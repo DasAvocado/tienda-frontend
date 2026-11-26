@@ -5,7 +5,7 @@ import { RecomendacionesComponent } from '../recomendaciones/recomendaciones.com
 import { CarritoService } from '../../servicios/carrito.service';
 import { ApiService, Producto, mensajeError } from '../../servicios/api.service';
 import { MsalService } from '@azure/msal-angular';
-import { clp, imagenProducto } from '../../util/formato';
+import { clp, imagenProducto, sinFoto } from '../../util/formato';
 
 @Component({
   selector: 'app-pauperrimos',
@@ -67,7 +67,7 @@ import { clp, imagenProducto } from '../../util/formato';
       <div class="grid" *ngIf="estaAutenticado && !cargando">
         <article class="product" *ngFor="let producto of catalogo">
           <a class="product-media" [routerLink]="['/producto', producto.id]" [attr.aria-label]="'Ver ' + producto.nombre">
-            <img [src]="imagen(producto.nombre)" [alt]="producto.nombre" loading="lazy">
+            <img [src]="imagen(producto.nombre)" (error)="sinFoto($event)" [alt]="producto.nombre" loading="lazy">
             <span class="chip" [ngClass]="claseStock(producto)">{{ textoStock(producto) }}</span>
           </a>
           <div class="product-body">
@@ -96,6 +96,7 @@ export class PauperrimosComponent implements OnInit {
 
   clp = clp;
   imagen = imagenProducto;
+  sinFoto = sinFoto;
 
   constructor(
     public carritoService: CarritoService,

@@ -355,3 +355,16 @@ a.product-media { display: block; text-decoration: none; }
   .cupon { flex-direction: column; }
   .empty .btn + .btn, .success .btn + .btn { margin: .5rem 0 0; }
 }
+
+/* ==========================================================================
+   Fotos reales de producto (public/img/productos/*.jpg, 4:3)
+   Las fotos llenan el recuadro; la ilustración de respaldo (.ilustracion) se ve completa.
+   ========================================================================== */
+.product-media { padding: 0; background: #fff; overflow: hidden; }
+.product-media img { object-fit: cover; display: block; }
+.thumb { object-fit: cover; padding: 0; background: #fff; }
+.rec-media { padding: 0; overflow: hidden; background: #fff; }
+.rec-media img { object-fit: cover; display: block; }
+.detail-media { padding: 0; overflow: hidden; background: #fff; }
+.detail-media img { object-fit: cover; display: block; border-radius: 14px; }
+img.ilustracion { object-fit: contain !important; padding: 8%; background: radial-gradient(circle at 50% 40%, #fff 0%, #eee9e1 100%); }

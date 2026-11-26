@@ -4,7 +4,7 @@ import { RouterModule } from '@angular/router';
 import { CarritoService } from '../../servicios/carrito.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ApiService, Pago, mensajeError } from '../../servicios/api.service';
-import { clp, imagenProducto } from '../../util/formato';
+import { clp, imagenProducto, sinFoto } from '../../util/formato';
 
 @Component({
   selector: 'app-pago',
@@ -102,7 +102,7 @@ import { clp, imagenProducto } from '../../util/formato';
           <h3>Tu pedido</h3>
           <p *ngIf="carritoService.items.length === 0" class="sub">Tu carrito está vacío.</p>
           <div class="mini-item" *ngFor="let item of carritoService.items">
-            <img class="thumb" [src]="imagen(item.nombre)" alt="">
+            <img class="thumb" [src]="imagen(item.nombre)" (error)="sinFoto($event)" alt="">
             <span class="n">{{ item.nombre }} <span class="unit">× {{ item.cantidad }}</span></span>
             <strong>{{ clp(item.precio * item.cantidad) }}</strong>
           </div>
@@ -134,6 +134,7 @@ export class PagoComponent implements OnInit {
 
   clp = clp;
   imagen = imagenProducto;
+  sinFoto = sinFoto;
 
   constructor(public carritoService: CarritoService, private api: ApiService) {}
 

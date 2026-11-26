@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ApiService, Orden, mensajeError } from '../../servicios/api.service';
-import { clp, imagenProducto } from '../../util/formato';
+import { clp, imagenProducto, sinFoto } from '../../util/formato';
 
 @Component({
   selector: 'app-ordenes',
@@ -35,7 +35,7 @@ import { clp, imagenProducto } from '../../util/formato';
         </div>
         <div class="order-items">
           <div class="mini-item" *ngFor="let i of o.items">
-            <img class="thumb" [src]="imagen(i.nombre)" alt="">
+            <img class="thumb" [src]="imagen(i.nombre)" (error)="sinFoto($event)" alt="">
             <span class="n">{{ i.nombre }} <span class="unit">× {{ i.cantidad }}</span></span>
             <strong>{{ clp(i.precio * i.cantidad) }}</strong>
           </div>
@@ -57,6 +57,7 @@ export class OrdenesComponent implements OnInit {
 
   clp = clp;
   imagen = imagenProducto;
+  sinFoto = sinFoto;
 
   constructor(private api: ApiService) {}
 

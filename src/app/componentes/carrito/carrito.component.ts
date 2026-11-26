@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { CarritoService } from '../../servicios/carrito.service';
-import { clp, imagenProducto } from '../../util/formato';
+import { clp, imagenProducto, sinFoto } from '../../util/formato';
 
 @Component({
   selector: 'app-carrito',
@@ -27,7 +27,7 @@ import { clp, imagenProducto } from '../../util/formato';
     <div class="cart-layout" *ngIf="carritoService.items.length > 0">
       <div class="cart-list">
         <article class="cart-item" *ngFor="let item of carritoService.items">
-          <img class="thumb" [src]="imagen(item.nombre)" alt="">
+          <img class="thumb" [src]="imagen(item.nombre)" (error)="sinFoto($event)" alt="">
           <div class="ci-info">
             <h3><a [routerLink]="['/producto', item.productoId]">{{ item.nombre }}</a></h3>
             <span class="unit">{{ clp(item.precio) }} c/u</span>
@@ -87,6 +87,7 @@ import { clp, imagenProducto } from '../../util/formato';
 export class CarritoComponent implements OnInit {
   clp = clp;
   imagen = imagenProducto;
+  sinFoto = sinFoto;
   codigo = '';
   errorCupon = '';
   aplicando = false;

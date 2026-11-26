@@ -4,7 +4,7 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ApiService, Producto, mensajeError } from '../../servicios/api.service';
 import { CarritoService } from '../../servicios/carrito.service';
 import { RecomendacionesComponent } from '../recomendaciones/recomendaciones.component';
-import { clp, imagenProducto } from '../../util/formato';
+import { clp, imagenProducto, sinFoto } from '../../util/formato';
 
 /** Detalle de producto. Al abrirlo, ms-catalogo publica PRODUCTO_VISTO en Kafka (pedidos360.navegacion). */
 @Component({
@@ -17,7 +17,7 @@ import { clp, imagenProducto } from '../../util/formato';
     <div class="skeleton detail-skeleton" *ngIf="!producto && !error"></div>
 
     <article class="detail" *ngIf="producto">
-      <div class="detail-media"><img [src]="imagen(producto.nombre)" [alt]="producto.nombre"></div>
+      <div class="detail-media"><img [src]="imagen(producto.nombre)" (error)="sinFoto($event)" [alt]="producto.nombre"></div>
       <div class="detail-info">
         <span class="eyebrow">{{ producto.categoria || 'Repuesto' }}</span>
         <h1>{{ producto.nombre }}</h1>
@@ -40,6 +40,7 @@ export class ProductoDetalleComponent implements OnInit {
   agregado = false;
   clp = clp;
   imagen = imagenProducto;
+  sinFoto = sinFoto;
 
   @ViewChild('recs') recs?: RecomendacionesComponent;
 

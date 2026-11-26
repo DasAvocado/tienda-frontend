@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ApiService, ProductoRecomendado } from '../../servicios/api.service';
 import { CarritoService } from '../../servicios/carrito.service';
-import { clp, imagenProducto } from '../../util/formato';
+import { clp, imagenProducto, sinFoto } from '../../util/formato';
 
 /** "Recomendados para ti": ms-recomendaciones analiza tu navegación reciente (eventos Kafka). */
 @Component({
@@ -19,7 +19,7 @@ import { clp, imagenProducto } from '../../util/formato';
       <div class="recs-grid">
         <article class="rec" *ngFor="let r of productos">
           <a [routerLink]="['/producto', r.productoId]" class="rec-media">
-            <img [src]="imagen(r.nombre)" [alt]="r.nombre" loading="lazy">
+            <img [src]="imagen(r.nombre)" (error)="sinFoto($event)" [alt]="r.nombre" loading="lazy">
           </a>
           <div class="rec-body">
             <span class="rec-cat" *ngIf="r.categoria">{{ r.categoria }}</span>
@@ -43,6 +43,7 @@ export class RecomendacionesComponent implements OnInit {
   productos: ProductoRecomendado[] = [];
   clp = clp;
   imagen = imagenProducto;
+  sinFoto = sinFoto;
 
   constructor(private api: ApiService, private carrito: CarritoService) {}
 
